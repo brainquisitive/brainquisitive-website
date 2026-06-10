@@ -914,8 +914,8 @@
         <label for="message">Message</label>
         <textarea id="message" placeholder="Tell us what you're looking for..."></textarea>
       </div>
-      <button class="form-submit" onclick="handleFormSubmit()">Send message →</button>
-      <p id="form-msg" style="font-size:13px; color: var(--accent-2); margin-top: 10px; display:none;">✓ Message sent! We'll get back to you soon.</p>
+      <button class="form-submit" id="form-btn" onclick="handleFormSubmit()">Send message →</button>
+      <p id="form-msg" style="font-size:13px; margin-top:10px; display:none;"></p>
     </div>
   </div>
 </section>
@@ -970,19 +970,54 @@
     link.addEventListener('click', () => navLinks.classList.remove('open'));
   });
 
-  function handleFormSubmit() {
+  async function handleFormSubmit() {
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
+    const subject = document.getElementById('subject').value.trim();
     const message = document.getElementById('message').value.trim();
+    const btn = document.getElementById('form-btn');
+    const msg = document.getElementById('form-msg');
+
     if (!name || !email || !message) {
-      alert('Please fill in your name, email, and message.');
+      msg.style.display = 'block';
+      msg.style.color = '#e24b4a';
+      msg.textContent = 'Please fill in your name, email, and message.';
       return;
     }
-    document.getElementById('form-msg').style.display = 'block';
-    document.getElementById('name').value = '';
-    document.getElementById('email').value = '';
-    document.getElementById('subject').value = '';
-    document.getElementById('message').value = '';
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    btn.style.opacity = '0.7';
+
+    try {
+      const res = await fetch('https://formspree.io/f/xdavlnjo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ name, email, subject, message })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.style.display = 'block';
+        msg.style.color = '#0f6e56';
+        msg.textContent = '✓ Message sent! We'll get back to you soon.';
+        document.getElementById('name').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('subject').value = '';
+        document.getElementById('message').value = '';
+        btn.textContent = 'Send message →';
+        btn.style.opacity = '1';
+        btn.disabled = false;
+      } else {
+        throw new Error(data.errors ? data.errors.map(e => e.message).join(', ') : 'Submission failed');
+      }
+    } catch (err) {
+      msg.style.display = 'block';
+      msg.style.color = '#e24b4a';
+      msg.textContent = '✗ Something went wrong. Please email us directly at bqi.support@brainquisitive.com';
+      btn.textContent = 'Send message →';
+      btn.style.opacity = '1';
+      btn.disabled = false;
+    }
   }
 
   const navEl = document.getElementById('nav');
